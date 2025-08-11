@@ -8,12 +8,10 @@ This open source version is the official open source, open source the old versio
 
 
 
-#### 介绍
-OpenMYJ2C将编译的Java的Class字节码转换为C语言代码。交叉编译（您不用自己配置编译环境，OpenMYJ2C自动完成）可以生成Windows，Linux，Mac系统X86，ARM平台的动态链接库文件后，通过Java Native Interface 重新链接到原始程序。在此过程结束时，包含原始方法的.class文件的字节码中不会保留原始方法的信息。 
+#### introduce
+OpenMYJ2C converts compiled Java class bytecode into C code. Cross-compilation (OpenMYJ2C automatically performs this for you, without configuring the compilation environment) generates dynamic link libraries for Windows, Linux, Mac, X86, and ARM platforms, which are then relinked to the original program via the Java Native Interface. At the end of this process, the bytecode of the .class files containing the original methods no longer retains the original method information.
 
-
-
-编译前
+Before compilation
 ```
 public class App {
 	public static void main(String args[]) {
@@ -21,7 +19,7 @@ public class App {
 	}
 }
 ```
-编译后
+After compilation
 
 ```
 public class App {
