@@ -3,7 +3,6 @@ package cn.muyang;
 import cn.muyang.asm.ClassMetadataReader;
 import cn.muyang.asm.SafeClassWriter;
 import cn.muyang.cache.*;
-import cn.muyang.env.LicenseManager;
 import cn.muyang.env.SetupManager;
 import cn.muyang.helpers.ProcessHelper;
 import cn.muyang.utils.DataTool;
@@ -24,8 +23,6 @@ import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -390,53 +387,14 @@ public class MYObfuscator {
             } else {
                 System.out.println("Total " + classNumber.get() + " class files and " + methodNumber.get() + " methods need compilation");
             }
-            if ("1".equals(LicenseManager.getValue("type"))) {
-                if (methodNumber.get() > Integer.parseInt(LicenseManager.getValue("method")) || classNumber.get() > Integer.parseInt(LicenseManager.getValue("class"))) {
-                    if (locale.getLanguage().contains("zh")) {
-                        System.out.println("您使用的是个人版授权,需要编译的类或方法超过最大数量！！！");
-                    } else {
-                        System.out.println("You are using personal edition authorization, and the number of classes or methods to be compiled exceeds the maximum!!!\n");
-                    }
-                    return;
-                }
-                if (locale.getLanguage().contains("zh")) {
-                    System.out.println("将使用个人版授权为您编译！！！\n");
-                } else {
-                    System.out.println("Will be compiled for you with personal edition license ！！！\n");
-                }
-            } else if ("2".equals(LicenseManager.getValue("type"))) {
-                if (locale.getLanguage().contains("zh")) {
-                    if (locale.getLanguage().contains("zh")) {
-                        System.out.println("将使用专业版授权为您编译！！！\n");
-                    } else {
-                        System.out.println("Will be compiled for you using the Professional License！！！\n");
-                    }
-                }
-            }
-            boolean free = false;
-            if (StringUtils.isEmpty(LicenseManager.getValue("type"))) {
-                if (methodNumber.get() == 1 && classNumber.get() == 1) {
-                    free = true;
-                    if (locale.getLanguage().contains("zh")) {
-                        System.out.println("将使用免费版授权为您编译,编译文件不会过期！！！\n");
-                    } else {
-                        System.out.println(" t will be compiled for you with a free version license, and the compiled file will not expire ！！！\n");
-                    }
-                } else {
-                    if (locale.getLanguage().contains("zh")) {
-                        System.out.println("将使用试用版授权为您编译,当前编译的程序将在一周后过期,过期后将不能正常运行！！！\n");
-                    } else {
-                        System.out.println("The trial version will be authorized to compile for you. The currently compiled program will expire in a week, and will not work properly after expiration!!！\n");
-                    }
-                }
-            }
+            boolean free = true;
 
             if (locale.getLanguage().contains("zh")) {
                 System.out.println("正在把class文件转换成C语言代码");
             } else {
                 System.out.println("Converting class file to C language code ");
             }
-            genCode(cppDir, config, free, instructions, map, classNameMap);
+            genCode(cppDir, config, instructions, map, classNameMap);
             final long startTime = System.currentTimeMillis();
             List<Future> allCompileTask = new ArrayList<>();
             if (StringUtils.isEmpty(plainLibName)) {
@@ -975,7 +933,7 @@ public class MYObfuscator {
     }
 
 
-    private void genCode(Path cppDir, Config config, boolean free, StringBuilder instructions, Map<String, ClassNode> map, Map<String, String> classNameMap) throws IOException {
+    private void genCode(Path cppDir, Config config, StringBuilder instructions, Map<String, ClassNode> map, Map<String, String> classNameMap) throws IOException {
         BufferedWriter mainWriter = Files.newBufferedWriter(cppDir.resolve("myj2c.c").toAbsolutePath());
         mainWriter.append("#include <jni.h>\n" +
                 "#include <stdatomic.h>\n" +
@@ -984,50 +942,7 @@ public class MYObfuscator {
                 (stringObf ? "#include <stdarg.h>\n" : "") +
                 "#include <math.h>\n\n");
 
-        String signCode = LicenseManager.s();
-        String sign = LicenseManager.getValue("sign");
         String appInfo = "";
-        if (!free && (!signCode.equals(LicenseManager.v(66)) || !sign.equals(LicenseManager.v(88)))) {
-            mainWriter.append("#include <time.h>\n\n");
-
-            mainWriter.append("int info = 0;\n");
-            //mainWriter.append("long expire = " + (System.currentTimeMillis() / 1000 + 7 * 24 * 3600) + ";\n");
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-            if (locale.getLanguage().contains("zh")) {
-                appInfo = "\n\n              该应用使用myj2c试用版创建 \n\n            应用将在 " + sdf.format(new Date((System.currentTimeMillis() + 7 * 24 * 3600 * 1000))) + "过期 \n\n         移除该信息请加QQ群:197453088\n\n========================================================\n\n";
-            } else {
-                appInfo = "\n\n               The application was created using myj2c trial version \n\n            App will expire on " + sdf.format(new Date((System.currentTimeMillis() + 7 * 24 * 3600 * 1000))) + " \n\n          Please add QQ group to remove this information:197453088\n\n========================================================\n\n";
-            }
-        } else if (config.getOptions() != null && StringUtils.isNotEmpty(config.getOptions().getExpireDate())) {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-            Date expire = null;
-            try {
-                expire = sdf.parse(config.getOptions().getExpireDate());
-                mainWriter.append("#include <time.h>\n\n");
-                mainWriter.append("int info = 0;\n");
-                //mainWriter.append("long expire = " + expire.getTime()/1000 + ";\n");
-
-            } catch (ParseException e) {
-            }
-        }
-        if (free && StringUtils.isEmpty(LicenseManager.getValue("type"))) {
-            mainWriter.append("int info = 0;\n");
-            if (locale.getLanguage().contains("zh")) {
-                appInfo = "\n\n              该应用使用myj2c免费版创建" + " \n\n            (c) 2022-2024 myj2c 版权所有\n\n========================================================\n\n";
-            } else {
-                appInfo = "\n\n               This application was created with myj2c free version " + " \n\n            (c) 2022-2024 myj2c copyright\n\n========================================================\n\n";
-
-            }
-        }
-        if ("1".equals(LicenseManager.getValue("type"))) {
-            mainWriter.append("int info = 0;\n");
-            if (locale.getLanguage().contains("zh")) {
-                appInfo = "\n\n              " + (LicenseManager.getValue("product") == null ? "该应用使用myj2c个人版创建" : LicenseManager.getValue("product")) + " \n\n            (c) 2022-2024 " + LicenseManager.getValue("name") + " 版权所有\n\n========================================================\n\n";
-            } else {
-                appInfo = "\n\n              " + (LicenseManager.getValue("product") == null ? " This application is created using myj2c Personal Edition " : LicenseManager.getValue("product")) + " \n\n            (c) 2022-2024 " + LicenseManager.getValue("name") + " copyright\n\n========================================================\n\n";
-
-            }
-        }
         if (config.getOptions() != null && "true".equals(config.getOptions().getStringObf())) {
             mainWriter.append("\nstatic inline char* myj2c_c_str_obf(char *a, char *b, const size_t len) {\n" +
                     "    volatile char c[len]; memcpy((char*) c, b, len); memcpy(b, (char*) c, len);\n" +
@@ -1241,22 +1156,7 @@ public class MYObfuscator {
                             "    if ((*env)->ExceptionCheck(env)) { return; }\n" +
                             "}\n";
                     String methodName = NativeSignature.getJNICompatibleName(className);
-                    if (!free && (!signCode.equals(LicenseManager.v(66)) || !sign.equals(LicenseManager.v(88)))) {
-                        mainWriter.append(new StringBuilder().append("/* Native registration for <").append(className).append("> */\n").append("JNIEXPORT void JNICALL Java_").append(methodName).append("__00024myj2cLoader(JNIEnv *env, jclass clazz) {\n").append("    JNINativeMethod table[] = {\n").append(registrationMethods).append("    };\n").append(licenseInfo).append("\n").append("if(time(NULL)<" + (System.currentTimeMillis() / 1000 + 7 * 24 * 3600) + "){\n").append("    (*env)->RegisterNatives(env, clazz, table, ").append(methodCount).append(");\n").append("}else{\n").append("    jvalue cstack0; memset(&cstack0, 0, sizeof(jvalue));\n").append("    jvalue cstack1; memset(&cstack1, 0, sizeof(jvalue));\n").append("    \n").append("    cstack0.l = (*env)->GetStaticObjectField(env, cc_system(env)->clazz, cc_system(env)->id_0); \n").append("    if ((*env)->ExceptionCheck(env)) { return; }\n").append("    cstack1.l = (*env)->NewString(env, ").append(stringObf ? Util.getStringObf(Util.utf82ints((locale.getLanguage().contains("zh") ? "该应用使用myj2c试用版本创建，试用过期，已不能运行！！！" : "This application was created with myj2c trial version, the trial has expired, stop running!!!"))) : "(unsigned short[]) {" + Util.utf82unicode((locale.getLanguage().contains("zh") ? "该应用使用myj2c试用版本创建，试用过期，已不能运行！！！" : "This application was created with myj2c trial version, the trial has expired, stop running!!!")) + "}").append(", ").append((locale.getLanguage().contains("zh") ? "该应用使用myj2c试用版本创建，试用过期，已不能运行！！！" : "This application was created with myj2c trial version, the trial has expired, stop running!!!").length()).append(");\n").append("    (*env)->CallVoidMethod(env, cstack0.l, cc_print(env)->method_0, cstack1.l);\n").append("    if ((*env)->ExceptionCheck(env)) { return; }\n").append("    exit(-1);\n").append("}\n").append("}\n\n").toString());
-                    } else if (free || "1".equals(LicenseManager.getValue("type"))) {
-                        mainWriter.append(new StringBuilder().append("/* Native registration for <").append(className).append("> */\n").append("JNIEXPORT void JNICALL Java_").append(methodName).append("__00024myj2cLoader(JNIEnv *env, jclass clazz) {\n").append("    JNINativeMethod table[] = {\n").append(registrationMethods).append("    };\n").append(licenseInfo).append("\n").append("    (*env)->RegisterNatives(env, clazz, table, ").append(methodCount).append(");\n").append("}\n\n").toString());
-                    } else if (config.getOptions() != null && StringUtils.isNotEmpty(config.getOptions().getExpireDate())) {
-                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-                        Date expire = null;
-                        try {
-                            expire = sdf.parse(config.getOptions().getExpireDate());
-                        }catch (Exception e){
-
-                        }
-                        mainWriter.append(new StringBuilder().append("/* Native registration for <").append(className).append("> */\n").append("JNIEXPORT void JNICALL Java_").append(methodName).append("__00024myj2cLoader(JNIEnv *env, jclass clazz) {\n").append("    JNINativeMethod table[] = {\n").append(registrationMethods).append("    };\n").append("\n").append("if(time(NULL)<" + expire.getTime() / 1000 + "){\n").append("    (*env)->RegisterNatives(env, clazz, table, ").append(methodCount).append(");\n").append("}else{\n").append("    jvalue cstack0; memset(&cstack0, 0, sizeof(jvalue));\n").append("    jvalue cstack1; memset(&cstack1, 0, sizeof(jvalue));\n").append("    \n").append("    cstack0.l = (*env)->GetStaticObjectField(env, cc_system(env)->clazz, cc_system(env)->id_0); \n").append("    if ((*env)->ExceptionCheck(env)) { return; }\n").append("    cstack1.l = (*env)->NewString(env, ").append(stringObf ? Util.getStringObf(Util.utf82ints((locale.getLanguage().contains("zh") ? "应用已过期，停止运行！！！" : "The application has expired, stop running!!!"))) : "(unsigned short[]) {" + Util.utf82unicode((locale.getLanguage().contains("zh") ? "应用已过期，停止运行！！！" : "The application has expired, stop running!!!")) + "}").append(", ").append((locale.getLanguage().contains("zh") ? "应用已过期，停止运行！！！" : "The application has expired, stop running!!!").length()).append(");\n").append("    (*env)->CallVoidMethod(env, cstack0.l, cc_print(env)->method_0, cstack1.l);\n").append("    if ((*env)->ExceptionCheck(env)) { return; }\n").append("    exit(-1);\n").append("}\n").append("}\n\n").toString());
-                    } else {
-                        mainWriter.append(new StringBuilder().append("/* Native registration for <").append(className).append("> */\n").append("JNIEXPORT void JNICALL Java_").append(methodName).append("__00024myj2cLoader(JNIEnv *env, jclass clazz) {\n").append("    JNINativeMethod table[] = {\n").append(registrationMethods).append("    };\n").append("    (*env)->RegisterNatives(env, clazz, table, ").append(methodCount).append(");\n").append("}\n\n").toString());
-                    }
+                    mainWriter.append(new StringBuilder().append("/* Native registration for <").append(className).append("> */\n").append("JNIEXPORT void JNICALL Java_").append(methodName).append("__00024myj2cLoader(JNIEnv *env, jclass clazz) {\n").append("    JNINativeMethod table[] = {\n").append(registrationMethods).append("    };\n").append("    (*env)->RegisterNatives(env, clazz, table, ").append(methodCount).append(");\n").append("}\n\n").toString());
                 }
             }
         }

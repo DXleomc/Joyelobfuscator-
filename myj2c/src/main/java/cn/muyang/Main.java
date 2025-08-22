@@ -1,15 +1,9 @@
 package cn.muyang;
 
-import cn.muyang.env.LicenseManager;
 import cn.muyang.env.SetupManager;
-import cn.muyang.utils.StringUtils;
 import cn.muyang.xml.Config;
 import org.simpleframework.xml.Serializer;
 import org.simpleframework.xml.core.Persister;
-import oshi.SystemInfo;
-import oshi.hardware.CentralProcessor;
-import oshi.hardware.HardwareAbstractionLayer;
-import oshi.hardware.NetworkIF;
 import picocli.CommandLine;
 
 import java.io.BufferedReader;
@@ -17,19 +11,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Array;
-import java.math.BigDecimal;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.GeneralSecurityException;
-import java.security.MessageDigest;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Callable;
@@ -43,10 +30,6 @@ public class Main {
     public static final String LOGO = "\n      ███╗   ███╗ ██╗   ██╗    ██╗ ██████╗   ██████╗\n      ████╗ ████║ ╚██╗ ██╔╝    ██║ ╚════██╗ ██╔════╝\n      ██╔████╔██║  ╚████╔╝     ██║  █████╔╝ ██║     \n      ██║╚██╔╝██║   ╚██╔╝ ██   ██║ ██╔═══╝  ██║     \n      ██║ ╚═╝ ██║    ██║  ╚█████╔╝ ███████╗ ╚██████╗\n      ╚═╝     ╚═╝    ╚═╝   ╚════╝  ╚══════╝  ╚═════╝\n\n";
 
     public static final Locale locale = Locale.getDefault();
-    private static final char[] DIGITS = {
-            '0', '1', '2', '3', '4', '5', '6', '7',
-            '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
-    };
 
     @CommandLine.Command(name = "myj2c-Bytecode-Translator", mixinStandardHelpOptions = true, version = "MYJ2C Bytecode Translator " + VERSION,
             description = "Translator .jar file into .c files and generates output .jar file")
@@ -93,7 +76,6 @@ public class Main {
                 }
             } else {
                 Path configPath = Files.createFile(config.toPath());
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
                 if (locale.getLanguage().contains("zh")) {
                     stringBuilder.append("<myj2c>\n" +
                             "\t<targets>\n" +
@@ -105,7 +87,7 @@ public class Main {
                             "\t\t<!--<target>LINUX_AARCH64</target>-->\n" +
                             "\t</targets>\n" +
                             "\t<options>\n" +
-                            "\t<!--<expireDate>" + sdf.format(new Date()) + "</expireDate> 应用过期日期，格式yyyy-MM-dd -->\n" +
+                            "\t<!--<expireDate>2023-12-31</expireDate> 应用过期日期，格式yyyy-MM-dd -->\n" +
                             "\t\t<!--字符串混淆-->\n" +
                             "\t\t<stringObf>false</stringObf>\n" +
                             "\t\t<!--控制流混淆-->\n" +
@@ -132,7 +114,7 @@ public class Main {
                             "\t\t<!--<target>LINUX_AARCH64</target>-->\n" +
                             "\t</targets>\n" +
                             "\t<options>\n" +
-                            "\t<!--<expireDate>" + sdf.format(new Date()) + "</expireDate>  Expiration date, format:yyyy-MM-dd -->\n" +
+                            "\t<!--<expireDate>2023-12-31</expireDate>  Expiration date, format:yyyy-MM-dd -->\n" +
                             "\t\t<!--String obfuscation-->\n" +
                             "\t\t<stringObf>false</stringObf>\n" +
                             "\t\t<!--Control flow obfuscation-->\n" +
@@ -170,165 +152,6 @@ public class Main {
                     return obfuscator.preProcess(jarFile.toPath(), configInfo, useAnnotations);
                 }
             });
-            if (locale.getLanguage().contains("zh")) {
-                System.out.println("正在检查授权...");
-            } else {
-                System.out.println("Checking authorization...");
-            }
-            String key = null;
-            try {
-                SystemInfo si = new SystemInfo();
-                HardwareAbstractionLayer hal = si.getHardware();
-                CentralProcessor processor = hal.getProcessor();
-                String cpuModel = processor.getProcessorIdentifier().getName();
-                cpuModel = cpuModel == null ? "" : cpuModel;
-                String processorID = processor.getProcessorIdentifier().getProcessorID();
-                processorID = processorID == null ? "" : processorID;
-                List<NetworkIF> networkIFs = hal.getNetworkIFs();
-                for (NetworkIF networkIF : networkIFs) {
-                    if (getLength(networkIF.getIPv4addr()) > 0) {
-                        String address = networkIF.getIPv4addr()[0];
-                        if (StringUtils.equals(address, "127.0.0.1") || StringUtils.contains(address, "169.254") || StringUtils.equals(address, "0.0.0.0") || StringUtils.equals("00:00:00:00:00:00", networkIF.getMacaddr())) {
-                            continue;
-                        }
-                        key = encodeHex(digest((cpuModel + processorID + networkIF.getDisplayName() + networkIF.getMacaddr().toUpperCase()).getBytes(), "MD5", null, 76));
-                    }
-                    if (key != null) {
-                        break;
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            final String path = System.getProperty("user.dir") + File.separator + "myj2c.licence";
-            if (new File(path).exists()) {
-                if (locale.getLanguage().contains("zh")) {
-                    System.out.println("正在读取授权文件...\n");
-                } else {
-                    System.out.println("Reading authorization file...\n");
-                }
-                String value = LicenseManager.getValue("offline");
-                if (!StringUtils.equals(value, "true")) {
-                    try {
-                        URL url = new URL("https://gitee.com/myj2c/myj2c/raw/master/code");
-                        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                        if (HttpURLConnection.HTTP_OK != conn.getResponseCode()) {
-                            if (locale.getLanguage().contains("zh")) {
-                                System.out.println("获取禁用机器码失败,可能是网站异常,请稍后再试...");
-                            } else {
-                                System.out.println("Failed to connect to the authorization server. It may be a website exception. Please try again later ...");
-                            }
-                            return 1;
-                        }
-                        InputStreamReader inputReader = new InputStreamReader(conn.getInputStream());
-                        BufferedReader bufferedReader = new BufferedReader(inputReader);
-                        String temp;
-                        while ((temp = bufferedReader.readLine()) != null) {
-                            if (!temp.trim().equals("")) {
-                                if (key.equals(temp.trim())) {
-                                    if (locale.getLanguage().contains("zh")) {
-                                        System.out.println("您的机器码被禁用...");
-                                    } else {
-                                        System.out.println("Your license is disabled ...");
-                                    }
-                                    return 1;
-                                }
-                            }
-                        }
-                        bufferedReader.close();
-                        inputReader.close();
-                    } catch (Exception e) {
-                        if (e.getMessage().contains("PKIX path building failed")) {
-                            if (locale.getLanguage().contains("zh")) {
-                                System.out.println("获取禁用机器码失败,可能是您修改了系统时间...");
-                            } else {
-                                System.out.println("Failed to obtain the machine code. You may have modified the system time ...");
-                            }
-                        } else {
-                            if (locale.getLanguage().contains("zh")) {
-                                System.out.println("获取禁用机器码失败,可能是网络问题,请您联网后再运行...");
-                            } else {
-                                System.out.println("Failed to connect to the authorization server. It may be a network problem. Please run it after connecting to the network");
-                            }
-                        }
-                        return 1;
-                    }
-                } else {
-                    if (locale.getLanguage().contains("zh")) {
-                        System.out.println("您的版本为单机版...");
-                    } else {
-                        System.out.println(" Your version is offline version ...");
-                    }
-                }
-            } else {
-                if (locale.getLanguage().contains("zh")) {
-                    System.out.println("\n未检测到授权文件...\n");
-                } else {
-                    System.out.println("\nNo authorization file found...\n");
-                }
-            }
-            LicenseManager.printInfo(key);
-            if (locale.getLanguage().contains("zh")) {
-                System.out.println("\n正在检查更新...\n");
-            } else {
-                System.out.println("\nChecking for updates...\n");
-            }
-            try {
-                URL url = new URL("https://gitee.com/myj2c/myj2c/raw/master/update");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setConnectTimeout(10 * 1000);
-                conn.setReadTimeout(10 * 1000);
-                InputStreamReader inputReader = new InputStreamReader(conn.getInputStream());
-                BufferedReader bufferedReader = new BufferedReader(inputReader);
-                boolean needUpdate = false;
-                String updateDescribe = "";
-                String temp;
-                while ((temp = bufferedReader.readLine()) != null) {
-                    if (temp.trim().contains("version") && !temp.trim().contains(VERSION)) {
-                        String version = temp.trim().replace("version", "");
-                        if (new BigDecimal(version.replaceFirst("\\.", "")).compareTo(new BigDecimal(VERSION.replaceFirst("\\.", ""))) > 0) {
-                            needUpdate = true;
-                        }
-                    } else if (temp.trim().contains("desc")) {
-                        updateDescribe = temp.trim().replace("desc", "");
-                    } else if (temp.trim().contains("update") && needUpdate) {
-                        if (locale.getLanguage().contains("zh")) {
-                            System.out.println("更新信息");
-                            System.out.println("有新版本发布");
-                            System.out.println(updateDescribe);
-                            System.out.println("请前往: https://gitee.com/myj2c/myj2c/releases 更新\n");
-                        } else {
-                            System.out.println("Update information");
-                            System.out.println("New version released");
-                            System.out.println(updateDescribe);
-                            System.out.println("Please go to: https://gitee.com/myj2c/myj2c/releases update\n");
-                        }
-                        return 1;
-                    }
-                }
-                if (needUpdate) {
-                    if (locale.getLanguage().contains("zh")) {
-                        System.out.println("更新信息");
-                        System.out.println("有新版本发布");
-                        System.out.println(updateDescribe);
-                        System.out.println("请前往: https://gitee.com/myj2c/myj2c/releases 更新\n");
-                    } else {
-                        System.out.println("Update information");
-                        System.out.println("New version released");
-                        System.out.println(updateDescribe);
-                        System.out.println("Please go to: https://gitee.com/myj2c/myj2c/releases update\n");
-                    }
-                } else {
-                    if (locale.getLanguage().contains("zh")) {
-                        System.out.println("您当前版本为最新版本");
-                    } else {
-                        System.out.println("Your current version is the latest version");
-                    }
-                }
-                bufferedReader.close();
-                inputReader.close();
-            } catch (Exception e) {
-            }
             if (locale.getLanguage().contains("zh")) {
                 System.out.println("\n正在初始化系统...");
             } else {
@@ -383,41 +206,5 @@ public class Main {
         return Array.getLength(array);
     }
 
-
-    /**
-     * 对字符串进行散列, 支持md5与sha1算法.
-     *
-     * @param input      需要散列的字符串
-     * @param algorithm  散列算法（"SHA-1"、"MD5"）
-     * @param salt
-     * @param iterations 迭代次数
-     * @return
-     */
-    private static byte[] digest(byte[] input, String algorithm, byte[] salt, int iterations) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance(algorithm);
-            if (salt != null) {
-                digest.update(salt);
-            }
-            byte[] result = digest.digest(input);
-            for (int i = 1; i < iterations; i++) {
-                digest.reset();
-                result = digest.digest(result);
-            }
-            return result;
-        } catch (GeneralSecurityException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static String encodeHex(byte[] input) {
-        int l = input.length;
-        char[] out = new char[l << 1];
-        for (int i = 0, j = 0; i < l; i++) {
-            out[j++] = DIGITS[(0xF0 & input[i]) >>> 4];
-            out[j++] = DIGITS[0x0F & input[i]];
-        }
-        return new String(out);
-    }
 
 }
