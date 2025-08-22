@@ -1,0 +1,14 @@
+# Gradle
+.gradle/
+build/
+myj2c/build/
+annotations/build/
+
+# IDE files
+.idea/
+*.iml
+*.iws
+
+# OS-specific
+.DS_Store
+Thumbs.db

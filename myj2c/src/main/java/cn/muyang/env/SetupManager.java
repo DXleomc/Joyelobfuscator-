@@ -37,11 +37,7 @@ public class SetupManager {
                 dirName = "zig-windows-" + platformTypeName + "-0.10.0";
             }
         } else {
-            if (locale.getLanguage().contains("zh")) {
-                System.out.println("暂不支持该系统类型,请联系开发者");
-            } else {
-                System.out.println("This system is not supported. Please contact the developer");
-            }
+            System.out.println("This system type is not currently supported, please contact the developer");
             return;
         }
         downloadZigCompiler(fileName, dirName);
@@ -89,57 +85,28 @@ public class SetupManager {
                 if (Files.exists(Paths.get(compilePath))) {
                     ProcessHelper.ProcessResult compileRunresult = ProcessHelper.run(Paths.get(currentDir + File.separator + dirName), 160_000,
                             Arrays.asList(compilePath, "version"));
-                    if (locale.getLanguage().contains("zh")) {
-                        System.out.println("\nzig安装版本:" + compileRunresult.stdout);
-                    } else {
-                        System.out.println("\nZig install version:" + compileRunresult.stdout);
-                    }
+                    System.out.println("\nzig installed version:" + compileRunresult.stdout);
                     if (compileRunresult.stdout.contains("0.10.0")) {
-                        if (locale.getLanguage().contains("zh")) {
-                            System.out.println("交叉编译工具已安装:" + currentDir + File.separator + dirName);
-                        } else {
-                            System.out.println("Cross compilation tool installed:" + currentDir + File.separator + dirName);
-
-                        }
+                        System.out.println("Cross-compilation tool installed:" + currentDir + File.separator + dirName);
                         return;
                     }
                 }
                 FileUtils.clearDirectory(currentDir + File.separator + dirName);
             }
-            if (locale.getLanguage().contains("zh")) {
-                System.out.println("正在下载交叉编译工具");
-            } else {
-                System.out.println("Downloading cross compilation tool");
-            }
-            if (locale.getLanguage().contains("zh")) {
-                System.out.println("下载链接：https://ziglang.org/download/0.10.0/" + fileName);
-            } else {
-                System.out.println("Download link：https://ziglang.org/download/0.10.0/" + fileName);
-            }
+            System.out.println("Downloading cross-compilation tool");
+            System.out.println("Download link: https://ziglang.org/download/0.10.0/" + fileName);
             InputStream in = new URL("https://ziglang.org/download/0.10.0/" + fileName).openStream();
             Files.copy(in, Paths.get(currentDir + File.separator + fileName), StandardCopyOption.REPLACE_EXISTING);
-            if (locale.getLanguage().contains("zh")) {
-                System.out.println("下载完成,正在解压");
-            } else {
-                System.out.println("Download completed, decompressing");
-            }
+            System.out.println("Download complete, decompressing");
             unzipFile(currentDir, fileName, currentDir);
 
             deleteFile(currentDir, fileName + ".temp");
             deleteFile(currentDir, fileName);
-            if (locale.getLanguage().contains("zh")) {
-                System.out.println("安装交叉编译工具完成");
-            } else {
-                System.out.println("Installation of cross compilation tool completed");
-            }
+            System.out.println("Installation of cross-compilation tool complete");
             if (!SetupManager.isWindows()) {
                 String compilePath = currentDir + File.separator + dirName + File.separator + "zig";
                 ProcessHelper.run(Paths.get(currentDir), 160_000, Arrays.asList("chmod", "777", compilePath));
-                if (locale.getLanguage().contains("zh")) {
-                    System.out.println("设置运行权限成功");
-                } else {
-                    System.out.println("Successfully set running permission");
-                }
+                System.out.println("Successfully set execution permissions");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -187,11 +154,7 @@ public class SetupManager {
                 }
             }
         }
-        if (locale.getLanguage().contains("zh")) {
-            System.out.println("获取zig临时文件目录失败");
-        } else {
-            System.out.println("Failed to get zig temporary file directory");
-        }
+        System.out.println("Failed to get zig temporary file directory");
         return "";
     }
 

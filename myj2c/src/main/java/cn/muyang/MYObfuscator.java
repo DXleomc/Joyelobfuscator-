@@ -127,7 +127,7 @@ public class MYObfuscator {
         try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(myj2cFile))) {
             File jarFile = inputJarPath.toAbsolutePath().toFile();
             JarFile jar = new JarFile(jarFile);
-            //预处理，找到需要混淆的类和方法
+            // Preprocessing, find the classes and methods to be obfuscated
             jar.stream().forEach(entry -> {
                         try {
                             if (entry.getName().endsWith(".class")) {
@@ -148,7 +148,7 @@ public class MYObfuscator {
                                         classInfo.addCachedField(cachedFieldInfo);
                                     }
                                     if (config.getOptions() != null && "true".equals(config.getOptions().getFlowObf())) {
-                                        //控制流混淆
+                                        // Control flow obfuscation
                                         Flow.transformClass(classNode);
                                     }
                                     for (MethodNode method : classNode.methods) {
@@ -157,7 +157,7 @@ public class MYObfuscator {
                                             CachedMethodInfo cachedMethodInfo = new CachedMethodInfo(classNode.name, method.name, method.desc, isStatic);
                                             classInfo.addCachedMethod(cachedMethodInfo);
                                             if (config.getOptions() != null && "true".equals(config.getOptions().getFlowObf())) {
-                                                //控制流混淆
+                                                // Control flow obfuscation
                                                 Flow.transformMethod(classNode, method);
                                             }
                                         }
@@ -219,11 +219,7 @@ public class MYObfuscator {
                 outputName = inputJarPath.toFile().getName();
             }
         }
-        if (locale.getLanguage().contains("zh")) {
-            System.out.println("输出位置:" + outputDir.toFile().getAbsolutePath() + File.separator + outputName);
-        } else {
-            System.out.println("Output location:" + outputDir.toFile().getAbsolutePath() + File.separator + outputName);
-        }
+        System.out.println("Output location:" + outputDir.toFile().getAbsolutePath() + File.separator + outputName);
         Path cppDir = outputDir.resolve("cpp");
         Files.createDirectories(cppDir);
         Path cacheDir = cppDir.resolve(".cache");
@@ -240,11 +236,7 @@ public class MYObfuscator {
         //Path tempFile = temp.resolve(UUID.randomUUID() + ".data");
         try (JarOutputStream out = new JarOutputStream(Files.newOutputStream(outputDir.resolve(outputName)))) {
             JarFile jar = new JarFile(jarFile);
-            if (locale.getLanguage().contains("zh")) {
-                System.out.println("正在解析 " + inputJarPath + "...");
-            } else {
-                System.out.println("Parsing " + inputJarPath + "...");
-            }
+            System.out.println("Parsing " + inputJarPath + "...");
             nativeDir = "myj2c/" + getRandomString(6);
             bootstrapMethodsPool = new BootstrapMethodsPool(nativeDir);
             staticClassProvider = new InterfaceStaticClassProvider(nativeDir);
@@ -289,12 +281,6 @@ public class MYObfuscator {
                     }
 
                     classNumber.getAndIncrement();
-                    //System.out.println("<match className=\""+ rawClassNode.name +"\" />");
-
-                   /* rawClassNode.methods.stream().filter(MethodProcessor::shouldProcess)
-                            .filter(methodNode -> classMethodFilter.shouldProcess(rawClassNode, methodNode))
-                    .forEach(methodNode -> Preprocessor.preprocess(rawClassNode, methodNode, platform));*/
-                    //System.out.println("MethodFilter done");
 
                     ClassWriter preprocessorClassWriter = new SafeClassWriter(metadataReader, Opcodes.ASM9 | ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
                     rawClassNode.accept(preprocessorClassWriter);
@@ -325,7 +311,7 @@ public class MYObfuscator {
                         if (!classMethodFilter.shouldProcess(classNode, method) && !"<clinit>".equals(method.name)) {
                             continue;
                         }
-                        //解析方法
+                        // Parse method
                         MethodContext context = new MethodContext(this, method, methodIndex, classNode, currentClassId);
                         methodProcessor.processMethod(context);
                         instructions.append(context.output.toString().replace("\n", "\n    "));
@@ -351,7 +337,7 @@ public class MYObfuscator {
                     ClassWriter classWriter = new SafeClassWriter(metadataReader, Opcodes.ASM9 | ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
                     classNode.accept(classWriter);
 
-                    //保存class文件
+                    // Save class file
                     Util.writeEntry(out, entry.getName(), classWriter.toByteArray());
                     currentClassId++;
                 } catch (IOException ex) {
@@ -382,27 +368,15 @@ public class MYObfuscator {
             }
 
             out.flush();
-            if (locale.getLanguage().contains("zh")) {
-                System.out.println("共找到 " + classNumber.get() + " 个类文件 " + methodNumber.get() + " 个方法需要myj2c编译");
-            } else {
-                System.out.println("Total " + classNumber.get() + " class files and " + methodNumber.get() + " methods need compilation");
-            }
+            System.out.println("Found " + classNumber.get() + " class files and " + methodNumber.get() + " methods to be compiled by myj2c");
             boolean free = true;
 
-            if (locale.getLanguage().contains("zh")) {
-                System.out.println("正在把class文件转换成C语言代码");
-            } else {
-                System.out.println("Converting class file to C language code ");
-            }
+            System.out.println("Converting class files to C code");
             genCode(cppDir, config, instructions, map, classNameMap);
             final long startTime = System.currentTimeMillis();
             List<Future> allCompileTask = new ArrayList<>();
             if (StringUtils.isEmpty(plainLibName)) {
-                if (locale.getLanguage().contains("zh")) {
-                    System.out.println("\n开始编译动态链接库文件");
-                } else {
-                    System.out.println("\nStart compiling the dynamic link library file");
-                }
+                System.out.println("\nStart compiling dynamic link library file");
                 List<String> libNames = new ArrayList<>();
                 for (String target : config.getTargets()) {
                     String platformTypeName;
@@ -472,11 +446,7 @@ public class MYObfuscator {
                             currentPlatformTypeName = "";
                             break;
                     }
-                    if (locale.getLanguage().contains("zh")) {
-                        System.out.println("开始编译:" + target);
-                    } else {
-                        System.out.println("Compiling:" + target);
-                    }
+                    System.out.println("Compiling:" + target);
                     String compilePath = System.getProperty("user.dir") + separator + "zig-" + currentOSName + "-" + currentPlatformTypeName + "-0.10.0" + separator + "zig" + (SetupManager.isWindows() ? ".exe" : "");
                     if (Files.exists(Paths.get(compilePath))) {
                         Future future = zigCompile(outputDir, compilePath, platformTypeName, osName, libName, libNames);
@@ -522,36 +492,19 @@ public class MYObfuscator {
                     System.out.print(String.format("\r%s", progressBar(i, max)));
                 }
                 System.out.println("\n");
-                if (locale.getLanguage().contains("zh")) {
-                    try {
-                        System.out.println(String.format("编译完成耗时 %dms", future.get()));
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                } else {
-                    try {
-                        System.out.println(String.format("Compilation time %dms", future.get()));
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
+                try {
+                    System.out.println(String.format("Compilation completed in %dms", future.get()));
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
                 }
 
-                if (locale.getLanguage().contains("zh")) {
-                    System.out.println("正在压缩已编译的动态链接库文件");
-                } else {
-                    System.out.println("Compressing compiled dynamic link library files ");
-
-                }
+                System.out.println("Compressing compiled dynamic link library files");
 
                 DataTool.compress(outputDir + separator + "build" + separator + "lib", outputDir + separator + "data.dat", Integer.getInteger("level", Deflater.BEST_SPEED));
                 //Files.deleteIfExists(tempFile);
 
                 //Files.deleteIfExists(temp);
-                if (locale.getLanguage().contains("zh")) {
-                    System.out.println("正在重新打包");
-                } else {
-                    System.out.println("Repackaging");
-                }
+                System.out.println("Repackaging");
                 if (StringUtils.isEmpty(libUrl)) {
                     Util.writeEntry(out, nativeDir + "/data.dat", Files.readAllBytes(Paths.get(outputDir + separator + "data.dat")));
                 } else {
@@ -561,12 +514,7 @@ public class MYObfuscator {
                     Files.copy(Paths.get(outputDir + separator + "data.dat"), Paths.get(outputDir + separator + "upload/data.dat"));
                 }
                 try {
-
-                    if (locale.getLanguage().contains("zh")) {
-                        System.out.println("清理临时文件");
-                    } else {
-                        System.out.println("Clean up temporary files");
-                    }
+                    System.out.println("Cleaning up temporary files");
                     FileUtils.clearDirectory(outputDir + separator + "cpp");
                     FileUtils.clearDirectory(outputDir + separator + "build");
                     Files.deleteIfExists(Paths.get(outputDir + separator + "data.dat"));
@@ -584,11 +532,7 @@ public class MYObfuscator {
             //Crasher.transformOutput(out);
             out.closeEntry();
             metadataReader.close();
-            if (locale.getLanguage().contains("zh")) {
-                System.out.println("myj2c编译任务已成功");
-            } else {
-                System.out.println("myj2c compilation task succeeded");
-            }
+            System.out.println("myj2c compilation task succeeded");
             out.close();
             if (delete) {
                 Files.deleteIfExists(inputJarPath);
@@ -784,20 +728,20 @@ public class MYObfuscator {
     }
 
     private static String getRandomString(int length) {
-        //定义一个字符串（A-Z，a-z，0-9）即62位；
+        // Define a string (A-Z, a-z, 0-9), 62 characters in total;
         String str = "zxcvbnmlkjhgfdsaqwertyuiopQWERTYUIOPASDFGHJKLZXCVBNM1234567890";
-        //由Random生成随机数
+        // Generate random numbers from Random
         Random random = new Random();
         StringBuffer sb = new StringBuffer();
         sb.append(str.charAt(random.nextInt(26)));
-        //长度为几就循环几次
+        // Loop as many times as the length
         for (int i = 0; i < length - 1; ++i) {
-            //产生0-61的数字
+            // Generate a number from 0-61
             int number = random.nextInt(62);
-            //将产生的数字通过length次承载到sb中
+            // Append the generated character to sb
             sb.append(str.charAt(number));
         }
-        //将承载的字符转换成字符串
+        // Convert the characters in sb to a string
         return sb.toString();
     }
 
@@ -912,9 +856,9 @@ public class MYObfuscator {
     }
 
     private Future zigCompile(Path outputDir, String compilePath, String platformTypeName, String osName, String libName, List<String> libNames) {
-        //创建线程池
+        // Create thread pool
         ExecutorService threadPool = Executors.newCachedThreadPool();
-        //获取异步Future对象
+        // Get asynchronous Future object
         Future future = threadPool.submit(new Callable() {
             @Override
             public Long call() throws IOException {

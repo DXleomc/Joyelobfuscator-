@@ -35,26 +35,19 @@ public class ProcessHelper {
                 return;
             }
             if (timeout) {
-                System.err.println(processName + " 编译超时,可能是您编译的类和方法太多或者机器性能较低导致编译超时");
+                System.err.println(processName + " compilation timed out. This may be because you have too many classes and methods to compile, or the machine performance is low.");
             } else {
                 if (commandLine.contains("zig") && commandLine.contains("myj2c")) {
-
-                    if (locale.getLanguage().contains("zh")) {
-                        System.err.println(processName + " 编译错误:" + stderr);
-                        System.err.println("已为您自动清理zig临时文件:" + SetupManager.getZigGlobalCacheDirectory(true) + " 请重新运行");
-                        System.out.println("如果再次运行失败,请手动删除后重试,手动删除后仍失败请反馈问题给开发者");
-                    } else {
-                        System.err.println(processName + " Compilation Error:" + stderr);
-                        System.err.println("The zig temporary files have been automatically cleaned up for you :" + SetupManager.getZigGlobalCacheDirectory(true) + "  Please run again");
-                        System.out.println(" Running again still failed. Please delete it manually and try again. If the manual deletion still fails, please feed back the problem to the developer ");
-                    }
+                    System.err.println(processName + " compilation error:" + stderr);
+                    System.err.println("Zig temporary files have been automatically cleaned up for you: " + SetupManager.getZigGlobalCacheDirectory(true) + " Please run again");
+                    System.out.println("If it fails again, please delete it manually and try again. If it still fails after manual deletion, please report the problem to the developer");
                 }
             }
             //System.err.println("Command line: \n" + commandLine);
             System.err.println("exit: \n" + exitCode);
             System.err.println("stdout: \n" + stdout);
             System.err.println("stderr: \n" + stderr);
-            throw new RuntimeException(processName + " " + (timeout ? "命令执行超时" : "命令执行出错"));
+            throw new RuntimeException(processName + " " + (timeout ? "Command execution timed out" : "Command execution error"));
         }
     }
 
